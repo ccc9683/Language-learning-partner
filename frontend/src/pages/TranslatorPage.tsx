@@ -1,11 +1,12 @@
 import { useRef, useState } from "react";
 
 import { TRANSLATE_ENDPOINT } from "../features/translator/api";
-import type { TranslateResult } from "../features/translator/types";
+import type { TranslateDetail, TranslateResult } from "../features/translator/types";
 
 function TranslatorPage() {
   const [text, setText] = useState("");
   const [result, setResult] = useState<TranslateResult | null>(null);
+  const [detailExpanded, setDetailExpanded] = useState(false);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
   const abortControllerRef = useRef<AbortController | null>(null);
@@ -35,6 +36,7 @@ function TranslatorPage() {
     if (!input) {
       setError("请输入英文单词、短语或句子。");
       setResult(null);
+      setDetailExpanded(false);
       return;
     }
 
@@ -42,6 +44,7 @@ function TranslatorPage() {
     abortControllerRef.current = controller;
     setLoading(true);
     setError("");
+    setDetailExpanded(false);
 
     try {
       const response = await fetch(TRANSLATE_ENDPOINT, {
@@ -96,6 +99,7 @@ function TranslatorPage() {
     cancelSpeech();
     setText("");
     setResult(null);
+    setDetailExpanded(false);
     setError("");
     setLoading(false);
   }
@@ -152,6 +156,20 @@ function TranslatorPage() {
                   <span>词性</span>
                   <strong>{result.part_of_speech || "暂无"}</strong>
                 </div>
+                {result.detail && (
+                  <>
+                    <div className="detail-actions">
+                      <button
+                        className="more-toggle"
+                        onClick={() => setDetailExpanded((expanded) => !expanded)}
+                        type="button"
+                      >
+                        {detailExpanded ? "less" : "more"}
+                      </button>
+                    </div>
+                    {detailExpanded && <DetailPanel detail={result.detail} />}
+                  </>
+                )}
               </>
             ) : (
               <div className="paragraph-result">{result.chinese}</div>
@@ -162,6 +180,69 @@ function TranslatorPage() {
         </div>
       </section>
     </main>
+  );
+}
+
+function DetailPanel({ detail }: { detail: TranslateDetail }) {
+  const hasMeanings = detail.meanings.length > 0;
+  const hasUsages = detail.usages.length > 0;
+  const hasSynonyms = detail.synonyms.length > 0;
+  const hasMistakes = detail.common_mistakes.length > 0;
+
+  return (
+    <section className="detail-panel">
+      <div className="detail-title">
+        <h2>{detail.headword}</h2>
+        {detail.pos && <span>{detail.pos}</span>}
+      </div>
+
+      {hasMeanings && (
+        <p className="detail-meanings">
+          {[detail.pos, detail.meanings.join("；")].filter(Boolean).join(" ")}
+        </p>
+      )}
+
+      {hasUsages && (
+        <div className="detail-section">
+          <h3>常见用法</h3>
+          <ol>
+            {detail.usages.map((usage) => (
+              <li key={`${usage.pattern}-${usage.example_en}`}>
+                <strong>{usage.pattern}</strong>
+                <p>{usage.example_en}</p>
+                <p>{usage.example_zh}</p>
+              </li>
+            ))}
+          </ol>
+        </div>
+      )}
+
+      {hasSynonyms && (
+        <div className="detail-section">
+          <h3>近义词</h3>
+          <p>{detail.synonyms.join(", ")}</p>
+        </div>
+      )}
+
+      {hasMistakes && (
+        <div className="detail-section">
+          <h3>常见错误</h3>
+          {detail.common_mistakes.map((mistake) => (
+            <div className="mistake" key={`${mistake.wrong}-${mistake.correct}`}>
+              <p>
+                <span>不能说</span>
+                {mistake.wrong}
+              </p>
+              <p>
+                <span>应该说</span>
+                {mistake.correct}
+              </p>
+              {mistake.note && <p>{mistake.note}</p>}
+            </div>
+          ))}
+        </div>
+      )}
+    </section>
   );
 }
 

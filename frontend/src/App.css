@@ -154,6 +154,108 @@ button:disabled {
   color: #6b7280;
 }
 
+.detail-actions {
+  display: flex;
+  justify-content: flex-end;
+  padding-top: 12px;
+}
+
+.more-toggle {
+  min-width: 0;
+  width: auto;
+  height: 30px;
+  padding: 0 12px;
+  border: 1px solid #cbd5e1;
+  color: #334155;
+  background: #f8fafc;
+}
+
+.more-toggle:hover {
+  background: #eef2f7;
+}
+
+.detail-panel {
+  margin-top: 14px;
+  padding-top: 16px;
+  border-top: 1px solid #edf1f7;
+  color: #1f2937;
+}
+
+.detail-title {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: 8px;
+  margin-bottom: 6px;
+}
+
+.detail-title h2 {
+  margin: 0;
+  font-size: 22px;
+  line-height: 1.2;
+}
+
+.detail-title span {
+  color: #475569;
+  font-weight: 700;
+}
+
+.detail-meanings {
+  margin: 0 0 16px;
+  color: #334155;
+  line-height: 1.6;
+}
+
+.detail-section {
+  margin-top: 16px;
+}
+
+.detail-section h3 {
+  margin: 0 0 8px;
+  font-size: 15px;
+  line-height: 1.4;
+}
+
+.detail-section p {
+  margin: 0;
+  line-height: 1.7;
+}
+
+.detail-section ol {
+  margin: 0;
+  padding-left: 22px;
+}
+
+.detail-section li {
+  padding: 4px 0 10px;
+}
+
+.detail-section li p:first-of-type {
+  margin-top: 4px;
+  color: #111827;
+}
+
+.detail-section li p:last-of-type {
+  color: #64748b;
+}
+
+.mistake {
+  padding: 8px 0;
+  border-top: 1px solid #edf1f7;
+}
+
+.mistake:first-of-type {
+  border-top: 0;
+  padding-top: 0;
+}
+
+.mistake span {
+  display: inline-block;
+  min-width: 56px;
+  margin-right: 8px;
+  color: #64748b;
+}
+
 .paragraph-result {
   white-space: pre-wrap;
   line-height: 1.7;
@@ -191,6 +293,10 @@ button:disabled {
 
   button {
     width: 100%;
+  }
+
+  .more-toggle {
+    width: auto;
   }
 
   button.tab {
