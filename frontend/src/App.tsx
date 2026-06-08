@@ -17,14 +17,14 @@ function App() {
             type="button"
             onClick={() => setActivePage("translator")}
           >
-            Quick Language
+            Translator
           </button>
           <button
             className={activePage === "say-it" ? "tab active" : "tab"}
             type="button"
             onClick={() => setActivePage("say-it")}
           >
-            Say It
+            Say it
           </button>
         </nav>
       </header>

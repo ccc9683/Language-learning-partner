@@ -11,7 +11,7 @@ from .schemas import TranslateRequest, TranslateResponse
 
 load_dotenv()
 
-app = FastAPI(title="Quick Language API")
+app = FastAPI(title="LLP API")
 
 app.add_middleware(
     CORSMiddleware,

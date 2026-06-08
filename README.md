@@ -1,6 +1,6 @@
-# Quick Language
+# Language learning partner（LLP）
 
-本地英文快速翻译 Web 工具。第一版只包含最小可用闭环：
+本地语言学习伙伴 Web 工具。项目程序名为 Language learning partner（简称 LLP）；翻译部分命名为 Translator；英译汉部分继续使用 Say it。第一版只包含最小可用闭环：
 
 - 输入英文单词或短语，返回中文、IPA 音标、词性
 - 输入英文句子或段落，返回中文翻译
@@ -10,7 +10,7 @@
 ## 项目结构
 
 ```text
-quick-language/
+llp/
   backend/
     app/
       main.py
@@ -32,7 +32,7 @@ quick-language/
 ## 启动后端
 
 ```bash
-cd ~/projects/quick-language/backend
+cd backend
 python3 -m venv .venv
 source .venv/bin/activate
 pip install -r requirements.txt
@@ -65,7 +65,7 @@ curl http://127.0.0.1:8000/api/health
 ## 启动前端
 
 ```bash
-cd ~/projects/quick-language/frontend
+cd frontend
 npm install
 npm run dev
 ```

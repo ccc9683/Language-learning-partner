@@ -13,7 +13,7 @@ export async function submitSayIt(payload: SayItRequest): Promise<SayItResponse>
 
   if (!response.ok) {
     const data = await response.json().catch(() => null);
-    throw new Error(data?.detail ?? "Say It 请求失败，请稍后重试。");
+    throw new Error(data?.detail ?? "Say it 请求失败，请稍后重试。");
   }
 
   return response.json();

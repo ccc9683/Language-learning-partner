@@ -81,7 +81,7 @@ function SayItPage() {
         speak(response.english_text);
       }
     } catch (err) {
-      setError(err instanceof Error ? err.message : "Say It 请求失败，请稍后重试。");
+      setError(err instanceof Error ? err.message : "Say it 请求失败，请稍后重试。");
     } finally {
       setLoading(false);
     }
@@ -179,7 +179,7 @@ function SayItPage() {
   return (
     <main className="page">
       <section className="translator say-it">
-        <h1>Say It</h1>
+        <h1>Say it</h1>
         <p className="subtitle">输入中文获得自然英文表达，或输入英文进行纠错。</p>
 
         <textarea
@@ -271,7 +271,7 @@ function SayItPage() {
               )}
             </>
           ) : (
-            <div className="empty">Say It 的结果会显示在这里。</div>
+            <div className="empty">Say it 的结果会显示在这里。</div>
           )}
         </div>
       </section>
