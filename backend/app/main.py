@@ -6,6 +6,7 @@ from fastapi import FastAPI, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
 from openai import APIConnectionError, APIStatusError, AsyncOpenAI
 
+from .routers.say_it import router as say_it_router
 from .schemas import TranslateRequest, TranslateResponse
 
 load_dotenv()
@@ -22,6 +23,8 @@ app.add_middleware(
     allow_methods=["*"],
     allow_headers=["*"],
 )
+
+app.include_router(say_it_router)
 
 
 @app.get("/api/health")

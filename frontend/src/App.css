@@ -124,6 +124,11 @@ button:disabled {
   color: #b42318;
 }
 
+.notice {
+  margin-top: 10px;
+  color: #7a4f01;
+}
+
 .result {
   min-height: 160px;
   padding: 18px;
@@ -154,6 +159,22 @@ button:disabled {
   line-height: 1.7;
 }
 
+.say-it-result {
+  display: grid;
+  gap: 12px;
+}
+
+.clarification {
+  display: grid;
+  gap: 12px;
+}
+
+.option-list {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+}
+
 @media (max-width: 560px) {
   .app-header {
     padding: 14px 14px 0;
@@ -174,5 +195,9 @@ button:disabled {
 
   button.tab {
     width: auto;
+  }
+
+  .option-list {
+    flex-direction: column;
   }
 }
