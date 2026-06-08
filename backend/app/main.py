@@ -10,7 +10,7 @@ from .schemas import TranslateRequest, TranslateResponse
 
 load_dotenv()
 
-app = FastAPI(title="Quick Translator API")
+app = FastAPI(title="Quick Language API")
 
 app.add_middleware(
     CORSMiddleware,

@@ -1,4 +1,4 @@
-# Quick Translator
+# Quick Language
 
 本地英文快速翻译 Web 工具。第一版只包含最小可用闭环：
 
@@ -10,7 +10,7 @@
 ## 项目结构
 
 ```text
-quick-translator/
+quick-language/
   backend/
     app/
       main.py
@@ -32,7 +32,7 @@ quick-translator/
 ## 启动后端
 
 ```bash
-cd ~/projects/quick-translator/backend
+cd ~/projects/quick-language/backend
 python3 -m venv .venv
 source .venv/bin/activate
 pip install -r requirements.txt
@@ -65,7 +65,7 @@ curl http://127.0.0.1:8000/api/health
 ## 启动前端
 
 ```bash
-cd ~/projects/quick-translator/frontend
+cd ~/projects/quick-language/frontend
 npm install
 npm run dev
 ```

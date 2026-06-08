@@ -109,7 +109,7 @@ function TranslatorPage() {
   return (
     <main className="page">
       <section className="translator">
-        <h1>Quick Translator</h1>
+        <h1>Quick Language</h1>
         <p className="subtitle">输入英文，快速获得中文翻译。</p>
 
         <textarea
