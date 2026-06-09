@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState } from "react";
 import type { MouseEvent } from "react";
 
+import { createLearningItem } from "../features/learning-book/api";
 import { submitSayIt } from "../features/say-it/api";
 import type { SayItResponse } from "../features/say-it/types";
 import {
@@ -10,6 +11,12 @@ import {
 } from "../shared/inputHistory";
 
 const SAY_IT_INPUT_HISTORY_STORAGE_KEY = "llp_say_it_input_history";
+
+type ClarificationState = {
+  originalText: string;
+  ambiguousText: string;
+  options: string[];
+};
 
 type BrowserSpeechRecognitionEvent = Event & {
   results: {
@@ -50,7 +57,11 @@ function SayItPage() {
   const [result, setResult] = useState<SayItResponse | null>(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
-  const [pendingText, setPendingText] = useState("");
+  const [clarificationState, setClarificationState] = useState<ClarificationState | null>(null);
+  const [lastSentenceSourceText, setLastSentenceSourceText] = useState("");
+  const [sentenceSaved, setSentenceSaved] = useState(false);
+  const [savingSentence, setSavingSentence] = useState(false);
+  const [favoriteNotice, setFavoriteNotice] = useState("");
   const [inputHistory, setInputHistory] = useState<string[]>(() =>
     loadInputHistory(SAY_IT_INPUT_HISTORY_STORAGE_KEY)
   );
@@ -96,8 +107,11 @@ function SayItPage() {
 
     setLoading(true);
     setError("");
+    setSentenceSaved(false);
+    setFavoriteNotice("");
 
     try {
+      const pendingText = clarification ? clarificationState?.originalText : "";
       const response = await submitSayIt({
         text: trimmed,
         pending_text: pendingText || undefined,
@@ -105,7 +119,16 @@ function SayItPage() {
       });
 
       setResult(response);
-      setPendingText(response.type === "clarification" ? trimmed : "");
+      setClarificationState(
+        response.type === "clarification"
+          ? {
+              originalText: response.original_text || trimmed,
+              ambiguousText: response.ambiguous_text || "",
+              options: response.options
+            }
+          : null
+      );
+      setLastSentenceSourceText(response.english_text ? trimmed : "");
 
       if (!clarification) {
         setInputHistory(addInputHistory(SAY_IT_INPUT_HISTORY_STORAGE_KEY, trimmed));
@@ -126,8 +149,9 @@ function SayItPage() {
   }
 
   function handleClarification(option: string) {
-    setInputText(option);
-    void sendRequest(option, option);
+    const correctedText = buildClarifiedText(clarificationState, option);
+    setInputText(correctedText);
+    void sendRequest(correctedText, option);
   }
 
   function handleSelectHistory(historyItem: string) {
@@ -139,6 +163,31 @@ function SayItPage() {
   function handleRemoveHistory(event: MouseEvent<HTMLButtonElement>, historyItem: string) {
     event.stopPropagation();
     setInputHistory(removeInputHistory(SAY_IT_INPUT_HISTORY_STORAGE_KEY, historyItem));
+  }
+
+  async function handleSaveSentence() {
+    const englishText = result?.english_text?.trim();
+    const sourceText = (lastSentenceSourceText || inputText).trim();
+    if (!englishText || !sourceText) {
+      return;
+    }
+
+    setSavingSentence(true);
+    setFavoriteNotice("");
+
+    try {
+      await createLearningItem({
+        type: "sentence",
+        source_text: sourceText,
+        target_text: englishText
+      });
+      setSentenceSaved(true);
+      setFavoriteNotice("已收藏到 Learning Book。");
+    } catch (err) {
+      setFavoriteNotice(err instanceof Error ? err.message : "收藏失败，请稍后重试。");
+    } finally {
+      setSavingSentence(false);
+    }
   }
 
   function startRecording() {
@@ -346,10 +395,23 @@ function SayItPage() {
               )}
 
               {result.english_text && (
-                <div className="result-row">
-                  <span>英文</span>
-                  <strong>{result.english_text}</strong>
-                </div>
+                <>
+                  <div className="result-row">
+                    <span>英文</span>
+                    <strong>{result.english_text}</strong>
+                  </div>
+                  <div className="favorite-actions">
+                    <button
+                      className="favorite-button"
+                      disabled={savingSentence}
+                      onClick={handleSaveSentence}
+                      type="button"
+                    >
+                      {sentenceSaved ? "★ 已收藏" : savingSentence ? "收藏中..." : "☆ 收藏句子"}
+                    </button>
+                  </div>
+                  {favoriteNotice && <div className="favorite-notice">{favoriteNotice}</div>}
+                </>
               )}
 
               {result.explanation && (
@@ -369,3 +431,15 @@ function SayItPage() {
 }
 
 export default SayItPage;
+
+function buildClarifiedText(state: ClarificationState | null, selectedOption: string): string {
+  if (!state) {
+    return selectedOption;
+  }
+
+  if (state.ambiguousText && state.originalText.includes(state.ambiguousText)) {
+    return state.originalText.replace(state.ambiguousText, selectedOption);
+  }
+
+  return state.originalText;
+}

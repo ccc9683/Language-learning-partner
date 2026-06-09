@@ -8,11 +8,14 @@ from fastapi.middleware.cors import CORSMiddleware
 from openai import APIConnectionError, APIStatusError, AsyncOpenAI
 from pydantic import ValidationError
 
+from .db import init_db
+from .routers.learning_book import router as learning_book_router
 from .routers.say_it import router as say_it_router
 from .schemas import TranslateRequest, TranslateResponse
 from .schemas.translator import TranslateDetail
 
 load_dotenv()
+init_db()
 
 app = FastAPI(title="LLP API")
 
@@ -27,6 +30,7 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
+app.include_router(learning_book_router)
 app.include_router(say_it_router)
 
 

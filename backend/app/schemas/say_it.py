@@ -16,3 +16,5 @@ class SayItResponse(BaseModel):
     question: str = ""
     options: list[str] = Field(default_factory=list)
     explanation: str = ""
+    original_text: str = ""
+    ambiguous_text: str = ""

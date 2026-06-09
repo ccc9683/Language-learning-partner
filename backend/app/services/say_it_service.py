@@ -47,6 +47,18 @@ def handle_deterministic(text: str) -> SayItResponse | None:
             display_text="这句话有歧义，需要先确认含义。",
             question="你是想“打电话给他”还是“打架”？",
             options=["打电话", "打架"],
+            original_text=text,
+            ambiguous_text="",
+        )
+
+    if normalized == "我尤手写了一遍":
+        return SayItResponse(
+            type="clarification",
+            display_text="这句话有歧义，需要先确认用字。",
+            question="你是想用“又”“右”还是“有”？",
+            options=["又", "右", "有"],
+            original_text=text,
+            ambiguous_text="尤",
         )
 
     english_normalized = normalize_english(text)
@@ -82,6 +94,31 @@ def handle_clarification(pending_text: str, clarification: str) -> SayItResponse
                 english_text="I want to hit him.",
             )
 
+    if normalized_pending == "我尤手写了一遍":
+        corrected = replace_first(pending_text, "尤", clarification)
+        normalized_corrected = normalize_text(corrected)
+
+        if normalized_corrected == "我又手写了一遍":
+            return SayItResponse(
+                type="translation",
+                display_text="I handwrote it again.",
+                english_text="I handwrote it again.",
+            )
+
+        if normalized_corrected == "我右手写了一遍":
+            return SayItResponse(
+                type="translation",
+                display_text="I wrote it by hand with my right hand.",
+                english_text="I wrote it by hand with my right hand.",
+            )
+
+        if normalized_corrected == "我有手写了一遍":
+            return SayItResponse(
+                type="translation",
+                display_text="I did handwrite it once.",
+                english_text="I did handwrite it once.",
+            )
+
     return SayItResponse(
         type="error",
         display_text="暂时无法理解这个澄清回答，请换一种说法。",
@@ -108,10 +145,17 @@ async def call_llm(text: str, mode: str) -> SayItResponse:
                     "content": (
                         "You are the JSON API for a language practice feature. "
                         "Return only valid JSON with keys: type, display_text, english_text, "
-                        "question, options, explanation. For Chinese input, translate to natural "
-                        "spoken English unless clarification is needed. For English input, correct "
-                        "grammar and explain in concise Chinese. type must be one of: translation, "
-                        "correction, clarification, error."
+                        "question, options, explanation, original_text, ambiguous_text. For Chinese "
+                        "input, translate to natural spoken English unless clarification is needed. "
+                        "For English input, correct grammar and explain in concise Chinese. type "
+                        "must be one of: translation, correction, clarification, error. If type is "
+                        "clarification, original_text must be the user's full original sentence, "
+                        "options must contain the candidate replacements, and ambiguous_text must "
+                        "be the exact substring in original_text that should be replaced when a "
+                        "candidate is selected. If the clarification is about meaning rather than "
+                        "a direct text replacement, set ambiguous_text to an empty string. For all "
+                        "non-clarification responses, set original_text and ambiguous_text to empty "
+                        "strings."
                     ),
                 },
                 {"role": "user", "content": text},
@@ -139,6 +183,8 @@ async def call_llm(text: str, mode: str) -> SayItResponse:
             question=str(parsed.get("question") or ""),
             options=options,
             explanation=str(parsed.get("explanation") or ""),
+            original_text=str(parsed.get("original_text") or ""),
+            ambiguous_text=str(parsed.get("ambiguous_text") or ""),
         )
     except (TypeError, ValueError, json.JSONDecodeError):
         return fallback_without_llm(text, mode)
@@ -180,3 +226,10 @@ def normalize_text(text: str) -> str:
 
 def normalize_english(text: str) -> str:
     return re.sub(r"\s+", " ", text.strip().rstrip(".!?")).lower()
+
+
+def replace_first(text: str, old: str, new: str) -> str:
+    if not old:
+        return text
+
+    return text.replace(old, new, 1)

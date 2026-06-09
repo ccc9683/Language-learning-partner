@@ -13,4 +13,6 @@ export type SayItResponse = {
   question: string;
   options: string[];
   explanation: string;
+  original_text: string;
+  ambiguous_text: string;
 };

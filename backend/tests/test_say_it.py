@@ -29,6 +29,8 @@ def test_say_it_translates_clear_chinese_input():
         "question": "",
         "options": [],
         "explanation": "",
+        "original_text": "",
+        "ambiguous_text": "",
     }
 
 
@@ -38,6 +40,8 @@ def test_say_it_clarifies_ambiguous_chinese_input_then_calls_him():
     assert response["type"] == "clarification"
     assert response["question"] == "你是想“打电话给他”还是“打架”？"
     assert response["options"] == ["打电话", "打架"]
+    assert response["original_text"] == "我想打他"
+    assert response["ambiguous_text"] == ""
 
     clarification_response = run_say_it("打电话", pending_text="我想打他", clarification="打电话")
 
@@ -53,3 +57,24 @@ def test_say_it_corrects_required_english_sentence():
     assert data["display_text"] == "更正后的版本：I want to go to the store. (动词不定式后接动词原形)"
     assert data["english_text"] == "I want to go to the store."
     assert data["explanation"] == "动词不定式后接动词原形"
+
+
+def test_say_it_clarifies_ambiguous_character_and_uses_corrected_sentence():
+    response = run_say_it("我尤手写了一遍")
+
+    assert response["type"] == "clarification"
+    assert response["question"] == "你是想用“又”“右”还是“有”？"
+    assert response["options"] == ["又", "右", "有"]
+    assert response["original_text"] == "我尤手写了一遍"
+    assert response["ambiguous_text"] == "尤"
+
+    again_response = run_say_it("我又手写了一遍", pending_text="我尤手写了一遍", clarification="又")
+    right_response = run_say_it("我右手写了一遍", pending_text="我尤手写了一遍", clarification="右")
+    have_response = run_say_it("我有手写了一遍", pending_text="我尤手写了一遍", clarification="有")
+
+    assert again_response["type"] == "translation"
+    assert again_response["english_text"] == "I handwrote it again."
+    assert right_response["type"] == "translation"
+    assert right_response["english_text"] == "I wrote it by hand with my right hand."
+    assert have_response["type"] == "translation"
+    assert have_response["english_text"] == "I did handwrite it once."

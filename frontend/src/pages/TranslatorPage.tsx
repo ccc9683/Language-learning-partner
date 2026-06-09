@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState } from "react";
 import type { MouseEvent } from "react";
 
+import { createLearningItem } from "../features/learning-book/api";
 import { TRANSLATE_ENDPOINT } from "../features/translator/api";
 import type { TranslateDetail, TranslateResult } from "../features/translator/types";
 import {
@@ -15,6 +16,9 @@ function TranslatorPage() {
   const [text, setText] = useState("");
   const [result, setResult] = useState<TranslateResult | null>(null);
   const [detailExpanded, setDetailExpanded] = useState(false);
+  const [wordSaved, setWordSaved] = useState(false);
+  const [savingWord, setSavingWord] = useState(false);
+  const [favoriteNotice, setFavoriteNotice] = useState("");
   const [inputHistory, setInputHistory] = useState<string[]>(() =>
     loadInputHistory(INPUT_HISTORY_STORAGE_KEY)
   );
@@ -74,6 +78,8 @@ function TranslatorPage() {
     setLoading(true);
     setError("");
     setDetailExpanded(false);
+    setWordSaved(false);
+    setFavoriteNotice("");
 
     try {
       const response = await fetch(TRANSLATE_ENDPOINT, {
@@ -130,6 +136,8 @@ function TranslatorPage() {
     setText("");
     setResult(null);
     setDetailExpanded(false);
+    setWordSaved(false);
+    setFavoriteNotice("");
     setError("");
     setLoading(false);
   }
@@ -149,6 +157,32 @@ function TranslatorPage() {
   function handleRemoveHistory(event: MouseEvent<HTMLButtonElement>, historyItem: string) {
     event.stopPropagation();
     setInputHistory(removeInputHistory(INPUT_HISTORY_STORAGE_KEY, historyItem));
+  }
+
+  async function handleSaveWord() {
+    if (!result || result.kind !== "term") {
+      return;
+    }
+
+    setSavingWord(true);
+    setFavoriteNotice("");
+
+    try {
+      await createLearningItem({
+        type: "word",
+        source_text: result.detail?.headword || text.trim(),
+        phonetic: result.ipa,
+        part_of_speech: result.part_of_speech,
+        meaning: result.chinese,
+        detail_json: result.detail ? JSON.stringify(result.detail) : null
+      });
+      setWordSaved(true);
+      setFavoriteNotice("已收藏到 Learning Book。");
+    } catch (err) {
+      setFavoriteNotice(err instanceof Error ? err.message : "收藏失败，请稍后重试。");
+    } finally {
+      setSavingWord(false);
+    }
   }
 
   return (
@@ -241,6 +275,17 @@ function TranslatorPage() {
                   <span>词性</span>
                   <strong>{result.part_of_speech || "暂无"}</strong>
                 </div>
+                <div className="favorite-actions">
+                  <button
+                    className="favorite-button"
+                    disabled={savingWord}
+                    onClick={handleSaveWord}
+                    type="button"
+                  >
+                    {wordSaved ? "★ 已收藏" : savingWord ? "收藏中..." : "☆ 收藏"}
+                  </button>
+                </div>
+                {favoriteNotice && <div className="favorite-notice">{favoriteNotice}</div>}
                 {result.detail && (
                   <>
                     <div className="detail-actions">
