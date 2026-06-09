@@ -1,7 +1,15 @@
 import { useEffect, useRef, useState } from "react";
+import type { MouseEvent } from "react";
 
 import { submitSayIt } from "../features/say-it/api";
 import type { SayItResponse } from "../features/say-it/types";
+import {
+  addInputHistory,
+  loadInputHistory,
+  removeInputHistory
+} from "../shared/inputHistory";
+
+const SAY_IT_INPUT_HISTORY_STORAGE_KEY = "llp_say_it_input_history";
 
 type BrowserSpeechRecognitionEvent = Event & {
   results: {
@@ -43,10 +51,18 @@ function SayItPage() {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
   const [pendingText, setPendingText] = useState("");
+  const [inputHistory, setInputHistory] = useState<string[]>(() =>
+    loadInputHistory(SAY_IT_INPUT_HISTORY_STORAGE_KEY)
+  );
+  const [historyMenuOpen, setHistoryMenuOpen] = useState(false);
+  const [inputFocused, setInputFocused] = useState(false);
   const [isRecording, setIsRecording] = useState(false);
   const [speechSupported, setSpeechSupported] = useState(false);
   const [isSpeaking, setIsSpeaking] = useState(false);
   const recognitionRef = useRef<BrowserSpeechRecognition | null>(null);
+  const inputAreaRef = useRef<HTMLDivElement | null>(null);
+
+  const showHistoryButton = inputFocused || historyMenuOpen;
 
   useEffect(() => {
     setSpeechSupported(Boolean(getSpeechRecognitionConstructor()));
@@ -54,6 +70,20 @@ function SayItPage() {
     return () => {
       recognitionRef.current?.abort();
       stopSpeaking();
+    };
+  }, []);
+
+  useEffect(() => {
+    function handleDocumentPointerDown(event: PointerEvent) {
+      if (!inputAreaRef.current?.contains(event.target as Node)) {
+        setHistoryMenuOpen(false);
+        setInputFocused(false);
+      }
+    }
+
+    document.addEventListener("pointerdown", handleDocumentPointerDown);
+    return () => {
+      document.removeEventListener("pointerdown", handleDocumentPointerDown);
     };
   }, []);
 
@@ -77,6 +107,10 @@ function SayItPage() {
       setResult(response);
       setPendingText(response.type === "clarification" ? trimmed : "");
 
+      if (!clarification) {
+        setInputHistory(addInputHistory(SAY_IT_INPUT_HISTORY_STORAGE_KEY, trimmed));
+      }
+
       if (response.english_text) {
         speak(response.english_text);
       }
@@ -94,6 +128,17 @@ function SayItPage() {
   function handleClarification(option: string) {
     setInputText(option);
     void sendRequest(option, option);
+  }
+
+  function handleSelectHistory(historyItem: string) {
+    setInputText(historyItem);
+    setHistoryMenuOpen(false);
+    setInputFocused(true);
+  }
+
+  function handleRemoveHistory(event: MouseEvent<HTMLButtonElement>, historyItem: string) {
+    event.stopPropagation();
+    setInputHistory(removeInputHistory(SAY_IT_INPUT_HISTORY_STORAGE_KEY, historyItem));
   }
 
   function startRecording() {
@@ -182,12 +227,56 @@ function SayItPage() {
         <h1>Say it</h1>
         <p className="subtitle">输入中文获得自然英文表达，或输入英文进行纠错。</p>
 
-        <textarea
-          value={inputText}
-          onChange={(event) => setInputText(event.target.value)}
-          placeholder="例如：我想去超市买东西 / I want to going to the store"
-          rows={6}
-        />
+        <div className="translator-input-area" ref={inputAreaRef}>
+          <textarea
+            className="translator-input"
+            value={inputText}
+            onChange={(event) => setInputText(event.target.value)}
+            onFocus={() => setInputFocused(true)}
+            placeholder="例如：我想去超市买东西 / I want to going to the store"
+            rows={6}
+          />
+
+          {showHistoryButton && (
+            <button
+              aria-expanded={historyMenuOpen}
+              aria-label="打开输入历史"
+              className="history-toggle"
+              onClick={() => setHistoryMenuOpen((open) => !open)}
+              type="button"
+            >
+              ▼
+            </button>
+          )}
+
+          {historyMenuOpen && (
+            <div className="history-menu">
+              {inputHistory.length > 0 ? (
+                inputHistory.map((historyItem) => (
+                  <div className="history-row" key={historyItem}>
+                    <button
+                      className="history-item"
+                      onClick={() => handleSelectHistory(historyItem)}
+                      type="button"
+                    >
+                      {historyItem}
+                    </button>
+                    <button
+                      aria-label={`删除历史记录 ${historyItem}`}
+                      className="history-remove"
+                      onClick={(event) => handleRemoveHistory(event, historyItem)}
+                      type="button"
+                    >
+                      ×
+                    </button>
+                  </div>
+                ))
+              ) : (
+                <div className="history-empty">暂无历史记录</div>
+              )}
+            </div>
+          )}
+        </div>
 
         {!speechSupported && (
           <div className="notice">当前浏览器不支持语音识别，请使用 Chrome 或 Edge。</div>

@@ -1,19 +1,48 @@
-import { useRef, useState } from "react";
+import { useEffect, useRef, useState } from "react";
+import type { MouseEvent } from "react";
 
 import { TRANSLATE_ENDPOINT } from "../features/translator/api";
 import type { TranslateDetail, TranslateResult } from "../features/translator/types";
+import {
+  addInputHistory,
+  loadInputHistory,
+  removeInputHistory
+} from "../shared/inputHistory";
+
+const INPUT_HISTORY_STORAGE_KEY = "llp_translator_input_history";
 
 function TranslatorPage() {
   const [text, setText] = useState("");
   const [result, setResult] = useState<TranslateResult | null>(null);
   const [detailExpanded, setDetailExpanded] = useState(false);
+  const [inputHistory, setInputHistory] = useState<string[]>(() =>
+    loadInputHistory(INPUT_HISTORY_STORAGE_KEY)
+  );
+  const [historyMenuOpen, setHistoryMenuOpen] = useState(false);
+  const [inputFocused, setInputFocused] = useState(false);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
   const abortControllerRef = useRef<AbortController | null>(null);
   const abortReasonRef = useRef<"clear" | "stop" | null>(null);
+  const inputAreaRef = useRef<HTMLDivElement | null>(null);
 
   const hasInput = Boolean(text.trim());
   const canClear = hasInput || Boolean(result) || Boolean(error) || loading;
+  const showHistoryButton = inputFocused || historyMenuOpen;
+
+  useEffect(() => {
+    function handleDocumentPointerDown(event: PointerEvent) {
+      if (!inputAreaRef.current?.contains(event.target as Node)) {
+        setHistoryMenuOpen(false);
+        setInputFocused(false);
+      }
+    }
+
+    document.addEventListener("pointerdown", handleDocumentPointerDown);
+    return () => {
+      document.removeEventListener("pointerdown", handleDocumentPointerDown);
+    };
+  }, []);
 
   function cancelSpeech() {
     if ("speechSynthesis" in window) {
@@ -62,6 +91,7 @@ function TranslatorPage() {
       }
 
       setResult(await response.json());
+      setInputHistory(addInputHistory(INPUT_HISTORY_STORAGE_KEY, input));
     } catch (err) {
       if (err instanceof Error && err.name === "AbortError") {
         if (abortReasonRef.current === "stop") {
@@ -110,18 +140,73 @@ function TranslatorPage() {
     setLoading(false);
   }
 
+  function handleSelectHistory(historyItem: string) {
+    setText(historyItem);
+    setHistoryMenuOpen(false);
+    setInputFocused(true);
+  }
+
+  function handleRemoveHistory(event: MouseEvent<HTMLButtonElement>, historyItem: string) {
+    event.stopPropagation();
+    setInputHistory(removeInputHistory(INPUT_HISTORY_STORAGE_KEY, historyItem));
+  }
+
   return (
     <main className="page">
       <section className="translator">
         <h1>Translator</h1>
         <p className="subtitle">输入英文，快速获得中文翻译。</p>
 
-        <textarea
-          value={text}
-          onChange={(event) => setText(event.target.value)}
-          placeholder="输入英文单词、短语、句子或段落..."
-          rows={7}
-        />
+        <div className="translator-input-area" ref={inputAreaRef}>
+          <textarea
+            className="translator-input"
+            value={text}
+            onChange={(event) => setText(event.target.value)}
+            onFocus={() => setInputFocused(true)}
+            placeholder="输入英文单词、短语、句子或段落..."
+            rows={7}
+          />
+
+          {showHistoryButton && (
+            <button
+              aria-expanded={historyMenuOpen}
+              aria-label="打开输入历史"
+              className="history-toggle"
+              onClick={() => setHistoryMenuOpen((open) => !open)}
+              type="button"
+            >
+              ▼
+            </button>
+          )}
+
+          {historyMenuOpen && (
+            <div className="history-menu">
+              {inputHistory.length > 0 ? (
+                inputHistory.map((historyItem) => (
+                  <div className="history-row" key={historyItem}>
+                    <button
+                      className="history-item"
+                      onClick={() => handleSelectHistory(historyItem)}
+                      type="button"
+                    >
+                      {historyItem}
+                    </button>
+                    <button
+                      aria-label={`删除历史记录 ${historyItem}`}
+                      className="history-remove"
+                      onClick={(event) => handleRemoveHistory(event, historyItem)}
+                      type="button"
+                    >
+                      ×
+                    </button>
+                  </div>
+                ))
+              ) : (
+                <div className="history-empty">暂无历史记录</div>
+              )}
+            </div>
+          )}
+        </div>
 
         <div className="actions">
           <button onClick={handleTranslate} disabled={loading}>

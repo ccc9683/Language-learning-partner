@@ -88,6 +88,97 @@ textarea:focus {
   box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.14);
 }
 
+.translator-input-area {
+  position: relative;
+}
+
+.translator-input {
+  padding-right: 56px;
+}
+
+.history-toggle {
+  position: absolute;
+  top: 12px;
+  right: 12px;
+  min-width: 0;
+  width: 34px;
+  height: 30px;
+  border: 1px solid #cbd5e1;
+  color: #475569;
+  background: #f8fafc;
+  line-height: 1;
+}
+
+.history-toggle:hover {
+  background: #eef2f7;
+}
+
+.history-menu {
+  position: absolute;
+  z-index: 10;
+  top: calc(100% + 8px);
+  right: 0;
+  width: min(420px, 100%);
+  padding: 6px;
+  border: 1px solid #d6dce8;
+  border-radius: 8px;
+  background: #ffffff;
+  box-shadow: 0 12px 28px rgba(15, 23, 42, 0.12);
+}
+
+.history-row {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.history-row + .history-row {
+  margin-top: 4px;
+}
+
+.history-item {
+  flex: 1;
+  min-width: 0;
+  width: 100%;
+  height: 34px;
+  padding: 0 10px;
+  overflow: hidden;
+  border-radius: 6px;
+  color: #1f2937;
+  background: transparent;
+  text-align: left;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.history-item:hover,
+.history-item:focus {
+  background: #f1f5f9;
+}
+
+.history-remove {
+  min-width: 0;
+  width: 30px;
+  height: 30px;
+  border-radius: 6px;
+  color: #64748b;
+  background: transparent;
+  font-size: 18px;
+  line-height: 1;
+}
+
+.history-remove:hover,
+.history-remove:focus {
+  color: #b42318;
+  background: #fee4e2;
+}
+
+.history-empty {
+  padding: 10px;
+  color: #6b7280;
+  font-size: 14px;
+}
+
 .actions {
   display: flex;
   flex-wrap: wrap;
@@ -293,6 +384,15 @@ button:disabled {
 
   button {
     width: 100%;
+  }
+
+  .history-toggle {
+    width: 34px;
+  }
+
+  .history-remove {
+    flex: 0 0 30px;
+    width: 30px;
   }
 
   .more-toggle {
