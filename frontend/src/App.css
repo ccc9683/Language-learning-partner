@@ -318,6 +318,12 @@ button:disabled {
   font-weight: 700;
 }
 
+.detail-phonetic {
+  margin: 0 0 8px;
+  color: #64748b;
+  line-height: 1.5;
+}
+
 .detail-meanings {
   margin: 0 0 16px;
   color: #334155;
@@ -419,13 +425,92 @@ button:disabled {
 }
 
 .book-card {
-  display: flex;
-  justify-content: space-between;
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
   gap: 16px;
   padding: 16px;
   border: 1px solid #d6dce8;
   border-radius: 8px;
   background: #ffffff;
+}
+
+.book-card-word {
+  grid-template-columns: 1fr;
+  gap: 8px;
+  padding: 12px 14px;
+}
+
+.word-card-top {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.word-card-main {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: 6px 10px;
+  min-width: 0;
+}
+
+.word-card-main h2 {
+  margin: 0;
+  font-size: 19px;
+  line-height: 1.25;
+}
+
+.word-card-main span {
+  color: #64748b;
+  line-height: 1.4;
+}
+
+.word-meaning-row {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.word-meaning-row p {
+  margin: 0;
+  color: #475569;
+  line-height: 1.45;
+}
+
+.meaning-toggle {
+  white-space: nowrap;
+}
+
+.book-card-word .book-card-actions {
+  gap: 4px;
+}
+
+.book-card-word .book-card-actions button {
+  min-width: 0;
+  height: 28px;
+  padding: 0 8px;
+  border: 0;
+  color: #64748b;
+  background: transparent;
+  font-size: 14px;
+}
+
+.book-card-word .book-card-actions button:hover,
+.book-card-word .book-card-actions button:focus {
+  color: #1f2937;
+  background: #f1f5f9;
+}
+
+.book-card-word .book-card-actions button.danger {
+  color: #9f1f17;
+  background: transparent;
+}
+
+.book-card-word .book-card-actions button.danger:hover,
+.book-card-word .book-card-actions button.danger:focus {
+  color: #b42318;
+  background: #fee4e2;
 }
 
 .book-card-main {
@@ -449,6 +534,10 @@ button:disabled {
   flex: 0 0 auto;
   align-items: flex-start;
   gap: 8px;
+}
+
+.book-card-detail {
+  grid-column: 1 / -1;
 }
 
 button.compact {
@@ -498,7 +587,15 @@ button.compact {
   }
 
   .book-card {
+    grid-template-columns: 1fr;
+  }
+
+  .word-card-top {
     flex-direction: column;
+  }
+
+  .meaning-toggle {
+    width: auto;
   }
 
   .book-card-actions {
@@ -506,8 +603,8 @@ button.compact {
   }
 
   button.compact {
-    flex: 1;
-    width: 100%;
+    flex: 1 1 0;
+    width: auto;
   }
 
   button.tab {
