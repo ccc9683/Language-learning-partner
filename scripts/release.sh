@@ -2,35 +2,55 @@
 set -euo pipefail
 
 PROJECT_ROOT="/home/titie/projects/LLP"
-cd "$PROJECT_ROOT"
 
-echo "== Git remotes =="
-git remote -v
+usage() {
+  cat <<'EOF'
+Usage:
+  scripts/release.sh --local   # build, test, commit locally; no push, no tag
+  scripts/release.sh --finish  # require clean tree, push main, create and push next tag
+  scripts/release.sh --full    # build, test, commit, push main, create and push next tag
+EOF
+}
 
-echo
-echo "== Frontend build =="
-cd "$PROJECT_ROOT/frontend"
-pnpm build
+show_remotes() {
+  echo "== Git remotes =="
+  git remote -v
+}
 
-echo
-echo "== Backend tests =="
-cd "$PROJECT_ROOT/backend"
-source .venv/bin/activate
-pytest
+run_frontend_build() {
+  echo
+  echo "== Frontend build =="
+  cd "$PROJECT_ROOT/frontend"
+  pnpm build
+}
 
-cd "$PROJECT_ROOT"
+run_backend_tests() {
+  echo
+  echo "== Backend tests =="
+  cd "$PROJECT_ROOT/backend"
+  source .venv/bin/activate
+  pytest
+}
 
-echo
-echo "== Git status before staging =="
-git status --short
+show_status() {
+  echo
+  echo "== Git status =="
+  cd "$PROJECT_ROOT"
+  git status --short
+}
 
-echo
-echo "== Staging changes =="
-git add -A
+commit_if_needed() {
+  cd "$PROJECT_ROOT"
 
-if git diff --cached --quiet; then
-  echo "No staged changes. Skipping commit."
-else
+  echo
+  echo "== Staging changes =="
+  git add -A
+
+  if git diff --cached --quiet; then
+    echo "No staged changes. Skipping commit."
+    return
+  fi
+
   changed_files="$(git diff --cached --name-only)"
   commit_message="$(python3 - "$changed_files" <<'PY'
 import sys
@@ -58,52 +78,126 @@ PY
 
   echo "Committing: $commit_message"
   git commit -m "$commit_message"
-fi
+}
 
-echo
-echo "== Push main =="
-echo "If git prompts for Username/Password, enter credentials in the terminal. Do not paste secrets into Codex."
-git push origin main
+ensure_clean_worktree() {
+  cd "$PROJECT_ROOT"
 
-echo
-echo "== Existing tags =="
-git tag --sort=v:refname
+  if [[ -n "$(git status --short)" ]]; then
+    echo "Working tree is not clean. Stop before push/tag."
+    git status --short
+    exit 1
+  fi
+}
 
-latest_tag="$(git tag --list 'v[0-9]*.[0-9]*.[0-9]*' --sort=-v:refname | head -n 1)"
-if [[ -z "$latest_tag" ]]; then
-  latest_tag="$(git tag --list '[0-9]*.[0-9]*.[0-9]*' --sort=-v:refname | head -n 1)"
-fi
+next_version_tag() {
+  latest_tag="$(git tag --list 'v[0-9]*.[0-9]*.[0-9]*' --sort=-v:refname | head -n 1)"
+  if [[ -z "$latest_tag" ]]; then
+    latest_tag="$(git tag --list '[0-9]*.[0-9]*.[0-9]*' --sort=-v:refname | head -n 1)"
+  fi
 
-if [[ -z "$latest_tag" ]]; then
-  next_tag="v0.1.0"
-else
-  version="${latest_tag#v}"
-  IFS='.' read -r major minor patch <<< "$version"
-  next_tag="v${major}.${minor}.$((patch + 1))"
-fi
+  if [[ -z "$latest_tag" ]]; then
+    next_tag="v0.1.0"
+  else
+    version="${latest_tag#v}"
+    IFS='.' read -r major minor patch <<< "$version"
+    next_tag="v${major}.${minor}.$((patch + 1))"
+  fi
 
-while git rev-parse -q --verify "refs/tags/$next_tag" >/dev/null; do
-  version="${next_tag#v}"
-  IFS='.' read -r major minor patch <<< "$version"
-  next_tag="v${major}.${minor}.$((patch + 1))"
-done
+  while git rev-parse -q --verify "refs/tags/$next_tag" >/dev/null; do
+    version="${next_tag#v}"
+    IFS='.' read -r major minor patch <<< "$version"
+    next_tag="v${major}.${minor}.$((patch + 1))"
+  done
 
-echo
-echo "== Create annotated tag: $next_tag =="
-git tag -a "$next_tag" -m "Release $next_tag"
+  echo "$next_tag"
+}
 
-echo
-echo "== Push tag =="
-git push origin "$next_tag"
+finish_release() {
+  cd "$PROJECT_ROOT"
 
-echo
-echo "== Recent log =="
-git log --oneline --decorate -5
+  show_status
+  ensure_clean_worktree
 
-echo
-echo "== Tags =="
-git tag --sort=v:refname
+  echo
+  echo "== Push main =="
+  echo "If git prompts for Username/Password, enter credentials in the terminal. Do not paste secrets into Codex."
+  git push origin main
 
-echo
-echo "== Final status =="
-git status --short
+  echo
+  echo "== Existing tags =="
+  git tag --sort=v:refname
+
+  next_tag="$(next_version_tag)"
+
+  echo
+  echo "== Create annotated tag: $next_tag =="
+  git tag -a "$next_tag" -m "Release $next_tag"
+
+  echo
+  echo "== Push tag =="
+  git push origin "$next_tag"
+
+  echo
+  echo "== Recent log =="
+  git log --oneline --decorate -5
+
+  echo
+  echo "== Tags =="
+  git tag --sort=v:refname
+
+  show_status
+}
+
+local_release() {
+  cd "$PROJECT_ROOT"
+
+  show_remotes
+  run_frontend_build
+  run_backend_tests
+  show_status
+  commit_if_needed
+
+  echo
+  echo "== Local release checks complete =="
+  echo "No push or tag was performed."
+  echo
+  echo "Run this in your WSL terminal to finish:"
+  echo "cd /home/titie/projects/LLP"
+  echo "scripts/release.sh --finish"
+}
+
+full_release() {
+  cd "$PROJECT_ROOT"
+
+  show_remotes
+  run_frontend_build
+  run_backend_tests
+  show_status
+  commit_if_needed
+  finish_release
+}
+
+main() {
+  mode="${1:-}"
+
+  cd "$PROJECT_ROOT"
+
+  case "$mode" in
+    --local)
+      local_release
+      ;;
+    --finish)
+      finish_release
+      ;;
+    --full)
+      full_release
+      ;;
+    *)
+      usage
+      exit 1
+      ;;
+  esac
+}
+
+main "$@"
