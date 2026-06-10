@@ -2,7 +2,7 @@
 
 ## Release Workflow
 
-- When the user says “发布”, “推送”, “来人”, or “来人啊”, use the repo-level Codex skill at `.agents/skills/llp-release/SKILL.md`.
+- When the user says “发布”, “推送”, “来人”, “来人啊”, or “来啊”, use the repo-level Codex skill at `.agents/skills/llp-release/SKILL.md`.
 - Default to two-step release:
   1. Codex runs `scripts/release.sh --local`.
   2. The user runs `scripts/release.sh --finish` in their own WSL terminal.
