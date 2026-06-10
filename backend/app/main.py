@@ -10,7 +10,9 @@ from pydantic import ValidationError
 
 from .db import init_db
 from .routers.learning_book import router as learning_book_router
+from .routers.partner import router as partner_router
 from .routers.say_it import router as say_it_router
+from .routers.speech import router as speech_router
 from .schemas import TranslateRequest, TranslateResponse
 from .schemas.translator import TranslateDetail
 
@@ -32,6 +34,8 @@ app.add_middleware(
 
 app.include_router(learning_book_router)
 app.include_router(say_it_router)
+app.include_router(partner_router)
+app.include_router(speech_router)
 
 
 @app.get("/api/health")

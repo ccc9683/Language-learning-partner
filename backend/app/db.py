@@ -1,4 +1,5 @@
 import sqlite3
+from datetime import datetime, timezone
 from pathlib import Path
 
 BACKEND_DIR = Path(__file__).resolve().parents[1]
@@ -15,6 +16,7 @@ def get_connection() -> sqlite3.Connection:
 
 def init_db() -> None:
     DATA_DIR.mkdir(parents=True, exist_ok=True)
+    now = datetime.now(timezone.utc).isoformat()
     with sqlite3.connect(DB_PATH) as connection:
         connection.execute(
             """
@@ -36,4 +38,40 @@ def init_db() -> None:
                 updated_at TEXT NOT NULL
             )
             """
+        )
+        connection.execute(
+            """
+            CREATE TABLE IF NOT EXISTS partner_messages (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                role TEXT NOT NULL CHECK (role IN ('user', 'assistant')),
+                content TEXT NOT NULL,
+                created_at TEXT NOT NULL
+            )
+            """
+        )
+        connection.execute(
+            """
+            CREATE TABLE IF NOT EXISTS partner_memory (
+                id INTEGER PRIMARY KEY CHECK (id = 1),
+                name TEXT NOT NULL DEFAULT '',
+                level TEXT NOT NULL DEFAULT 'beginner',
+                favorite_topics_json TEXT NOT NULL DEFAULT '[]',
+                style TEXT NOT NULL DEFAULT 'simple English',
+                updated_at TEXT NOT NULL
+            )
+            """
+        )
+        connection.execute(
+            """
+            INSERT OR IGNORE INTO partner_memory (
+                id,
+                name,
+                level,
+                favorite_topics_json,
+                style,
+                updated_at
+            )
+            VALUES (1, '', 'beginner', '[]', 'simple English', ?)
+            """,
+            (now,),
         )

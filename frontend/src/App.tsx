@@ -3,8 +3,9 @@ import { useState } from "react";
 import TranslatorPage from "./pages/TranslatorPage";
 import SayItPage from "./pages/SayItPage";
 import LearningBookPage from "./pages/LearningBookPage";
+import PartnerPage from "./pages/PartnerPage";
 
-type Page = "translator" | "say-it" | "learning-book";
+type Page = "translator" | "say-it" | "learning-book" | "partner";
 
 function App() {
   const [activePage, setActivePage] = useState<Page>("translator");
@@ -34,12 +35,20 @@ function App() {
           >
             Learning Book
           </button>
+          <button
+            className={activePage === "partner" ? "tab active" : "tab"}
+            type="button"
+            onClick={() => setActivePage("partner")}
+          >
+            Partner
+          </button>
         </nav>
       </header>
 
       {activePage === "translator" && <TranslatorPage />}
       {activePage === "say-it" && <SayItPage />}
       {activePage === "learning-book" && <LearningBookPage />}
+      {activePage === "partner" && <PartnerPage />}
     </div>
   );
 }

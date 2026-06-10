@@ -547,6 +547,92 @@ button.compact {
   padding: 0 10px;
 }
 
+.partner-page {
+  display: grid;
+  gap: 14px;
+}
+
+.partner-page .subtitle {
+  margin-bottom: 0;
+}
+
+.partner-memory {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  color: #64748b;
+  font-size: 14px;
+}
+
+.partner-memory span {
+  padding: 4px 8px;
+  border-radius: 6px;
+  background: #e5eaf3;
+}
+
+.partner-chat {
+  display: grid;
+  align-content: start;
+  gap: 10px;
+  min-height: 320px;
+  max-height: 52vh;
+  overflow-y: auto;
+  padding: 14px;
+  border: 1px solid #d6dce8;
+  border-radius: 8px;
+  background: #ffffff;
+}
+
+.chat-row {
+  display: flex;
+}
+
+.chat-row.user {
+  justify-content: flex-end;
+}
+
+.chat-row.assistant {
+  justify-content: flex-start;
+}
+
+.chat-bubble {
+  max-width: min(78%, 560px);
+  padding: 10px 12px;
+  border-radius: 8px;
+  color: #1f2937;
+  background: #eef2f7;
+}
+
+.chat-row.user .chat-bubble {
+  color: #ffffff;
+  background: #2563eb;
+}
+
+.chat-bubble p {
+  margin: 0;
+  white-space: pre-wrap;
+  line-height: 1.55;
+}
+
+.chat-speak-button {
+  min-width: 0;
+  width: auto;
+  height: 28px;
+  margin-top: 8px;
+  padding: 0 8px;
+  color: #334155;
+  background: #ffffff;
+  font-size: 13px;
+}
+
+.partner-input-area textarea {
+  min-height: 112px;
+}
+
+.partner-actions {
+  margin-top: 0;
+}
+
 @media (max-width: 560px) {
   .app-header {
     padding: 14px 14px 0;
@@ -613,5 +699,14 @@ button.compact {
 
   .option-list {
     flex-direction: column;
+  }
+
+  .partner-chat {
+    max-height: 48vh;
+    min-height: 280px;
+  }
+
+  .chat-bubble {
+    max-width: 92%;
   }
 }

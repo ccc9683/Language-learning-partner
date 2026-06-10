@@ -9,6 +9,13 @@ import {
   loadInputHistory,
   removeInputHistory
 } from "../shared/inputHistory";
+import {
+  createSpeechRecognition,
+  isSpeechRecognitionSupported,
+  speakEnglish,
+  stopSpeaking as stopBrowserSpeaking,
+  type BrowserSpeechRecognition
+} from "../shared/speech";
 
 const SAY_IT_INPUT_HISTORY_STORAGE_KEY = "llp_say_it_input_history";
 
@@ -17,40 +24,6 @@ type ClarificationState = {
   ambiguousText: string;
   options: string[];
 };
-
-type BrowserSpeechRecognitionEvent = Event & {
-  results: {
-    length: number;
-    [index: number]: {
-      [index: number]: {
-        transcript: string;
-      };
-    };
-  };
-};
-
-type BrowserSpeechRecognition = {
-  lang: string;
-  continuous: boolean;
-  interimResults: boolean;
-  onresult: ((event: BrowserSpeechRecognitionEvent) => void) | null;
-  onerror: (() => void) | null;
-  onend: (() => void) | null;
-  start: () => void;
-  stop: () => void;
-  abort: () => void;
-};
-
-type BrowserSpeechRecognitionConstructor = new () => BrowserSpeechRecognition;
-
-function getSpeechRecognitionConstructor(): BrowserSpeechRecognitionConstructor | null {
-  const speechWindow = window as Window & {
-    SpeechRecognition?: BrowserSpeechRecognitionConstructor;
-    webkitSpeechRecognition?: BrowserSpeechRecognitionConstructor;
-  };
-
-  return speechWindow.SpeechRecognition ?? speechWindow.webkitSpeechRecognition ?? null;
-}
 
 function SayItPage() {
   const [inputText, setInputText] = useState("");
@@ -76,7 +49,7 @@ function SayItPage() {
   const showHistoryButton = inputFocused || historyMenuOpen;
 
   useEffect(() => {
-    setSpeechSupported(Boolean(getSpeechRecognitionConstructor()));
+    setSpeechSupported(isSpeechRecognitionSupported());
 
     return () => {
       recognitionRef.current?.abort();
@@ -195,31 +168,23 @@ function SayItPage() {
       return;
     }
 
-    const SpeechRecognition = getSpeechRecognitionConstructor();
-    if (!SpeechRecognition) {
+    const recognition = createSpeechRecognition({
+      lang: "zh-CN",
+      onResult: (transcript) => setInputText(transcript),
+      onError: () => {
+        setIsRecording(false);
+        setError("语音识别失败，请重试。");
+      },
+      onEnd: () => {
+        setIsRecording(false);
+        recognitionRef.current = null;
+      }
+    });
+
+    if (!recognition) {
       setSpeechSupported(false);
       return;
     }
-
-    const recognition = new SpeechRecognition();
-    recognition.lang = "zh-CN";
-    recognition.continuous = false;
-    recognition.interimResults = false;
-    recognition.onresult = (event) => {
-      const lastResult = event.results[event.results.length - 1];
-      const transcript = lastResult?.[0]?.transcript?.trim();
-      if (transcript) {
-        setInputText(transcript);
-      }
-    };
-    recognition.onerror = () => {
-      setIsRecording(false);
-      setError("语音识别失败，请重试。");
-    };
-    recognition.onend = () => {
-      setIsRecording(false);
-      recognitionRef.current = null;
-    };
 
     recognitionRef.current = recognition;
     setError("");
@@ -249,24 +214,22 @@ function SayItPage() {
 
   function speak(text = result?.english_text ?? "") {
     const englishText = text.trim();
-    if (!englishText || !("speechSynthesis" in window)) {
+    if (!englishText) {
       return;
     }
 
-    window.speechSynthesis.cancel();
-    const utterance = new SpeechSynthesisUtterance(englishText);
-    utterance.lang = "en-US";
-    utterance.rate = 0.95;
-    utterance.onend = () => setIsSpeaking(false);
-    utterance.onerror = () => setIsSpeaking(false);
     setIsSpeaking(true);
-    window.speechSynthesis.speak(utterance);
+    const started = speakEnglish(englishText, {
+      onEnd: () => setIsSpeaking(false),
+      onError: () => setIsSpeaking(false)
+    });
+    if (!started) {
+      setIsSpeaking(false);
+    }
   }
 
   function stopSpeaking() {
-    if ("speechSynthesis" in window) {
-      window.speechSynthesis.cancel();
-    }
+    stopBrowserSpeaking();
     setIsSpeaking(false);
   }
 
