@@ -9,11 +9,8 @@ import {
 import type { PartnerMemory, PartnerMessage } from "../features/partner/types";
 import { transcribeSpeech } from "../features/speech/api";
 import {
-  createSpeechRecognition,
-  isSpeechRecognitionSupported,
   speakEnglish,
   stopSpeaking,
-  type BrowserSpeechRecognition
 } from "../shared/speech";
 
 const DEFAULT_MEMORY: PartnerMemory = {
@@ -33,21 +30,20 @@ function PartnerPage() {
   const [isRecording, setIsRecording] = useState(false);
   const [isTranscribing, setIsTranscribing] = useState(false);
   const [speechSupported, setSpeechSupported] = useState(false);
-  const [uploadSpeechMode, setUploadSpeechMode] = useState(false);
   const [speakingMessageId, setSpeakingMessageId] = useState<number | "latest" | null>(null);
-  const recognitionRef = useRef<BrowserSpeechRecognition | null>(null);
   const mediaRecorderRef = useRef<MediaRecorder | null>(null);
   const mediaStreamRef = useRef<MediaStream | null>(null);
   const audioChunksRef = useRef<Blob[]>([]);
   const messageListRef = useRef<HTMLDivElement | null>(null);
-  const recordingStoppedByUserRef = useRef(false);
 
   useEffect(() => {
-    setSpeechSupported(isSpeechRecognitionSupported());
+    setSpeechSupported(
+      typeof navigator.mediaDevices?.getUserMedia === "function" &&
+        typeof window.MediaRecorder !== "undefined"
+    );
     void loadHistory();
 
     return () => {
-      recognitionRef.current?.abort();
       stopUploadStream();
       stopSpeaking();
     };
@@ -123,59 +119,18 @@ function PartnerPage() {
       return;
     }
 
-    if (uploadSpeechMode || !speechSupported) {
-      void startUploadRecording();
+    if (!speechSupported) {
+      setError("当前浏览器不支持本地录音，请换 Chrome 或 Edge 重试。");
       return;
     }
 
-    const recognition = createSpeechRecognition({
-      lang: "zh-CN",
-      onResult: (transcript) => setInputText(transcript),
-      onError: (speechError) => {
-        setIsRecording(false);
-        recognitionRef.current = null;
-        if (recordingStoppedByUserRef.current && speechError === "aborted") {
-          return;
-        }
-
-        if (speechError === "network") {
-          setUploadSpeechMode(true);
-        }
-
-        setError(getSpeechErrorMessage(speechError));
-      },
-      onEnd: () => {
-        setIsRecording(false);
-        recognitionRef.current = null;
-        recordingStoppedByUserRef.current = false;
-      }
-    });
-
-    if (!recognition) {
-      setSpeechSupported(false);
-      return;
-    }
-
-    recognitionRef.current = recognition;
-    recordingStoppedByUserRef.current = false;
-    setError("");
-    setIsRecording(true);
-
-    try {
-      recognition.start();
-    } catch {
-      recognitionRef.current = null;
-      setIsRecording(false);
-      setError("语音识别启动失败，请重试。");
-    }
+    void startUploadRecording();
   }
 
   function stopRecording() {
     if (!isRecording) {
       return;
     }
-
-    recordingStoppedByUserRef.current = true;
 
     if (mediaRecorderRef.current) {
       try {
@@ -186,13 +141,6 @@ function PartnerPage() {
       setIsRecording(false);
       return;
     }
-
-    try {
-      recognitionRef.current?.stop();
-    } catch {
-      recognitionRef.current = null;
-    }
-    setIsRecording(false);
   }
 
   async function startUploadRecording() {
@@ -321,7 +269,7 @@ function PartnerPage() {
         </div>
 
         {!speechSupported && (
-          <div className="notice">当前浏览器不支持语音识别，请使用 Chrome 或 Edge。</div>
+          <div className="notice">当前浏览器不支持本地录音，请使用 Chrome 或 Edge。</div>
         )}
 
         <div className="partner-input-area">
@@ -364,30 +312,6 @@ function PartnerPage() {
 }
 
 export default PartnerPage;
-
-function getSpeechErrorMessage(error: string): string {
-  if (error === "not-allowed" || error === "service-not-allowed") {
-    return "麦克风权限被拒绝，请在浏览器地址栏允许麦克风后重试。";
-  }
-
-  if (error === "no-speech") {
-    return "没有识别到语音，请靠近麦克风再试一次。";
-  }
-
-  if (error === "audio-capture") {
-    return "没有检测到可用麦克风，请检查系统输入设备。";
-  }
-
-  if (error === "network") {
-    return "浏览器语音识别服务网络不可用，已切换为录音上传识别。请再点一次“说话”。";
-  }
-
-  if (error === "aborted") {
-    return "语音识别已中断，请再点一次“说话”重试。";
-  }
-
-  return `语音识别失败，请重试。错误：${error || "unknown"}`;
-}
 
 function getSpeechButtonText(isRecording: boolean, isTranscribing: boolean): string {
   if (isTranscribing) {
