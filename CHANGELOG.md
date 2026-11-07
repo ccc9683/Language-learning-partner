@@ -1,5 +1,10 @@
 # Changelog
 
+## 未发布
+
+- Translator 支持将句子和段落收藏到 Learning Book 的 Sentences，并按输入语言选择英文内容朗读。
+- Learning Book 对新收藏的 Translator 句子显示英文原文在前、中文译文在后。
+
 ## v0.3.7 - 录音诊断与网页端录音流程修复
 
 - 新增 Say It / Partner 录音诊断信息与可切换诊断面板

@@ -198,13 +198,19 @@ function SentenceCard({
   onDelete: (id: number) => void;
   onSpeak: (text: string) => void;
 }) {
-  const englishText = item.target_text || "";
+  let fromTranslator = false;
+  try {
+    fromTranslator = JSON.parse(item.detail_json || "null")?.origin === "translator";
+  } catch {
+    // Older items may not have structured metadata.
+  }
+  const englishText = (fromTranslator ? item.source_text : item.target_text) || "";
 
   return (
     <article className="book-card">
       <div className="book-card-main">
         <h2>{item.source_text}</h2>
-        {englishText && <p>{englishText}</p>}
+        {item.target_text && <p>{item.target_text}</p>}
       </div>
       <div className="book-card-actions">
         <button

@@ -17,6 +17,7 @@ const INPUT_HISTORY_STORAGE_KEY = "llp_translator_input_history";
 function TranslatorPage() {
   const [text, setText] = useState("");
   const [result, setResult] = useState<TranslateResult | null>(null);
+  const [resultInput, setResultInput] = useState("");
   const [detailExpanded, setDetailExpanded] = useState(false);
   const [wordSaved, setWordSaved] = useState(false);
   const [savingWord, setSavingWord] = useState(false);
@@ -83,6 +84,7 @@ function TranslatorPage() {
 
     try {
       setResult(await translateText(input, controller.signal));
+      setResultInput(input);
       setInputHistory(addInputHistory(INPUT_HISTORY_STORAGE_KEY, input));
     } catch (err) {
       if (err instanceof Error && err.name === "AbortError") {
@@ -104,9 +106,16 @@ function TranslatorPage() {
   }
 
   async function handleSpeak() {
-    const result = await speakEnglish(text);
-    if (!result.ok) {
-      setError(result.error);
+    const input = text.trim();
+    const isChineseInput = /\p{Script=Han}/u.test(input);
+    if (isChineseInput && (!result || resultInput !== input || loading)) {
+      setError("请先翻译当前中文，再朗读英文结果。");
+      return;
+    }
+
+    const speechResult = await speakEnglish(isChineseInput ? result!.chinese : input);
+    if (!speechResult.ok) {
+      setError(speechResult.error);
       return;
     }
 
@@ -118,6 +127,7 @@ function TranslatorPage() {
     cancelSpeech();
     setText("");
     setResult(null);
+    setResultInput("");
     setDetailExpanded(false);
     setWordSaved(false);
     setFavoriteNotice("");
@@ -143,7 +153,7 @@ function TranslatorPage() {
   }
 
   async function handleSaveWord() {
-    if (!result || result.kind !== "term") {
+    if (!result) {
       return;
     }
 
@@ -151,13 +161,18 @@ function TranslatorPage() {
     setFavoriteNotice("");
 
     try {
-      await createLearningItem({
+      await createLearningItem(result.kind === "term" ? {
         type: "word",
-        source_text: result.detail?.headword || text.trim(),
+        source_text: result.detail?.headword || resultInput,
         phonetic: result.ipa,
         part_of_speech: result.part_of_speech,
         meaning: result.chinese,
         detail_json: result.detail ? JSON.stringify(result.detail) : null
+      } : {
+        type: "sentence",
+        source_text: resultInput,
+        target_text: result.chinese,
+        detail_json: JSON.stringify({ origin: "translator" })
       });
       setWordSaved(true);
       setFavoriteNotice("已收藏到 Learning Book。");
@@ -285,7 +300,20 @@ function TranslatorPage() {
                 )}
               </>
             ) : (
-              <div className="paragraph-result">{result.chinese}</div>
+              <>
+                <div className="paragraph-result">{result.chinese}</div>
+                <div className="favorite-actions">
+                  <button
+                    className="favorite-button"
+                    disabled={savingWord || loading}
+                    onClick={handleSaveWord}
+                    type="button"
+                  >
+                    {wordSaved ? "★ 已收藏" : savingWord ? "收藏中..." : "☆ 收藏"}
+                  </button>
+                </div>
+                {favoriteNotice && <div className="favorite-notice">{favoriteNotice}</div>}
+              </>
             )
           ) : (
             <div className="empty">翻译结果会显示在这里。</div>
