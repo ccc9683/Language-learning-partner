@@ -16,6 +16,16 @@ class LearningItemCreate(BaseModel):
     note: str | None = None
 
 
+class ReviewSubmission(BaseModel):
+    remembered: bool
+
+
+class ReviewStats(BaseModel):
+    reviewed: int
+    remembered: int
+    item_counts: dict[int, int]
+
+
 class LearningItem(BaseModel):
     id: int
     type: LearningItemType

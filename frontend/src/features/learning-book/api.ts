@@ -31,3 +31,31 @@ export async function deleteLearningItem(id: number): Promise<void> {
     fallbackError: "删除失败，请稍后重试。"
   });
 }
+
+export async function fetchDueItems(): Promise<LearningItem[]> {
+  return apiJson<LearningItem[]>("/learning-items/review", {
+    fallbackError: "读取待复习内容失败，请稍后重试。"
+  });
+}
+
+export type ReviewStats = { reviewed: number; remembered: number; item_counts: Record<string, number> };
+
+export async function fetchTodayReviewStats(): Promise<ReviewStats> {
+  const start = new Date();
+  start.setHours(0, 0, 0, 0);
+  const end = new Date(start);
+  end.setDate(end.getDate() + 1);
+  const params = new URLSearchParams({ start: start.toISOString(), end: end.toISOString() });
+  return apiJson(`/learning-items/review/stats?${params}`, {
+    fallbackError: "读取今日复习统计失败，请稍后重试。"
+  });
+}
+
+export async function submitReview(id: number, remembered: boolean): Promise<LearningItem> {
+  return apiJson<LearningItem>(`/learning-items/${id}/review`, {
+    method: "POST",
+    headers: jsonHeaders(),
+    body: JSON.stringify({ remembered }),
+    fallbackError: "保存复习进度失败，请稍后重试。"
+  });
+}

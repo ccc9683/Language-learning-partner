@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react";
 
-import { deleteLearningItem, fetchLearningItems } from "../features/learning-book/api";
+import { deleteLearningItem, fetchDueItems, fetchLearningItems, fetchTodayReviewStats, submitReview } from "../features/learning-book/api";
+import type { ReviewStats } from "../features/learning-book/api";
 import type { LearningItem, LearningItemType } from "../features/learning-book/types";
 import TranslateDetailPanel from "../features/translator/TranslateDetailPanel";
 import { translateText } from "../features/translator/api";
@@ -8,13 +9,15 @@ import type { TranslateDetail } from "../features/translator/types";
 import { speakEnglish } from "../shared/speech";
 
 function LearningBookPage() {
-  const [activeType, setActiveType] = useState<LearningItemType>("word");
+  const [activeType, setActiveType] = useState<LearningItemType | "review">("word");
   const [items, setItems] = useState<LearningItem[]>([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
 
   useEffect(() => {
-    void loadItems(activeType);
+    if (activeType !== "review") {
+      void loadItems(activeType);
+    }
   }, [activeType]);
 
   async function loadItems(type: LearningItemType) {
@@ -72,10 +75,18 @@ function LearningBookPage() {
           >
             Sentences
           </button>
+          <button
+            className={activeType === "review" ? "book-tab active" : "book-tab"}
+            onClick={() => setActiveType("review")}
+            type="button"
+          >
+            Review
+          </button>
         </div>
 
-        {error && <div className="error">{error}</div>}
+        {activeType !== "review" && error && <div className="error">{error}</div>}
 
+        {activeType === "review" ? <ReviewPanel /> : (
         <div className="book-list">
           {loading ? (
             <div className="empty">加载中...</div>
@@ -91,8 +102,101 @@ function LearningBookPage() {
             <div className="empty">暂无收藏内容。</div>
           )}
         </div>
+        )}
       </section>
     </main>
+  );
+}
+
+function ReviewPanel() {
+  const [items, setItems] = useState<LearningItem[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [stats, setStats] = useState<ReviewStats | null>(null);
+  const [saving, setSaving] = useState(false);
+  const [revealed, setRevealed] = useState(false);
+  const [error, setError] = useState("");
+
+  async function loadDue() {
+    try {
+      const [dueItems, todayStats] = await Promise.all([fetchDueItems(), fetchTodayReviewStats()]);
+      setItems(dueItems);
+      setStats(todayStats);
+      setError("");
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "读取待复习内容失败。");
+    } finally {
+      setLoading(false);
+    }
+  }
+
+  useEffect(() => { void loadDue(); }, []);
+
+  async function handleReview(remembered: boolean) {
+    if (!items[0] || saving) return;
+    setSaving(true);
+    setError("");
+    try {
+      await submitReview(items[0].id, remembered);
+      setItems([]);
+      setRevealed(false);
+      await loadDue();
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "保存复习进度失败。");
+    } finally {
+      setSaving(false);
+    }
+  }
+
+  async function handleSpeakWord(word: string) {
+    setError("");
+    const result = await speakEnglish(word, { onError: setError });
+    if (!result.ok) setError(result.error);
+  }
+
+  const item = items[0];
+  return (
+    <div className="review-panel">
+      <p className="review-hint">先回忆答案，再选择是否记住。记住后间隔逐渐延长；再练习的内容 1 天后出现。</p>
+      {!item && stats && <p className="review-progress" aria-live="polite">今日复习 {stats.reviewed} 条 · 记住 {stats.remembered} 条，加油！给大脑充电！</p>}
+      {error && <div className="error">{error}</div>}
+      {loading ? <div className="empty">加载中...</div> : item ? (
+        <article className="review-card" key={item.id}>
+          <span className="book-added-date">{item.type === "word" ? "单词" : "句子"} · 本批剩余 {items.length} 条</span>
+          {stats && <p className="review-progress" aria-live="polite">今日复习 {stats.reviewed} 条 · 记住 {stats.remembered} 条，加油！给大脑充电！</p>}
+          <div className="review-prompt">
+            <h2>{item.source_text}</h2>
+            {item.type === "word" && (
+              <>
+                <button
+                  aria-label={`朗读 ${item.source_text}`}
+                  className="review-speak"
+                  onClick={() => void handleSpeakWord(item.source_text)}
+                  title="朗读单词"
+                  type="button"
+                >
+                  🔊
+                </button>
+                <span className="review-word-count">今天我们相遇{stats?.item_counts?.[item.id] ?? 0}次了，多见几次我们就越发熟识了。</span>
+              </>
+            )}
+          </div>
+          {revealed ? (
+            <>
+              {item.type === "word" && <p>音标：{item.phonetic || "暂无音标"}</p>}
+              <p>{(item.type === "word" ? item.meaning : item.target_text) || "暂无答案"}</p>
+              <div className="review-actions">
+                <button className="secondary" disabled={saving} onClick={() => void handleReview(false)} type="button">再练习</button>
+                <button disabled={saving} onClick={() => void handleReview(true)} type="button">记住了</button>
+              </div>
+            </>
+          ) : (
+            <button onClick={() => setRevealed(true)} type="button">显示答案</button>
+          )}
+        </article>
+      ) : !error ? <div className="empty">目前没有待复习的内容。</div> : (
+        <button className="secondary" onClick={() => { setLoading(true); void loadDue(); }} type="button">重试</button>
+      )}
+    </div>
   );
 }
 
@@ -185,6 +289,7 @@ function WordCard({
           {detailError && <div className="favorite-notice">{detailError}</div>}
         </div>
       )}
+      <AddedDate createdAt={item.created_at} />
     </article>
   );
 }
@@ -225,7 +330,33 @@ function SentenceCard({
           删除
         </button>
       </div>
+      <AddedDate createdAt={item.created_at} />
     </article>
+  );
+}
+
+function AddedDate({ createdAt }: { createdAt: string }) {
+  const date = new Date(createdAt);
+  if (Number.isNaN(date.getTime())) {
+    return <span className="book-added-date">添加日期未知</span>;
+  }
+
+  const today = new Date();
+  const calendarDay = (value: Date) =>
+    Date.UTC(value.getFullYear(), value.getMonth(), value.getDate());
+  const daysAgo = Math.round((calendarDay(today) - calendarDay(date)) / 86400000);
+  const relative = daysAgo === 0 ? "今天" : daysAgo === 1 ? "昨天" :
+    daysAgo > 1 && daysAgo < 30 ? `${daysAgo} 天前` : "";
+  const formatted = new Intl.DateTimeFormat("zh-CN", {
+    year: "numeric",
+    month: "2-digit",
+    day: "2-digit"
+  }).format(date);
+
+  return (
+    <time className="book-added-date" dateTime={createdAt}>
+      {relative ? `${relative}添加 · ${formatted}` : `添加于 ${formatted}`}
+    </time>
   );
 }
 

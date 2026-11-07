@@ -55,6 +55,7 @@ export const SPEECH_SYNTHESIS_UNAVAILABLE_MESSAGE =
 
 const EMPTY_SPEECH_TEXT_MESSAGE = "没有可朗读的英文文本。";
 const DEFAULT_VOICE_WAIT_MS = 600;
+let speechRequestId = 0;
 
 export function getSpeechRecognitionConstructor(): BrowserSpeechRecognitionConstructor | null {
   const speechWindow = window as Window & {
@@ -121,8 +122,13 @@ export async function speakEnglish(
   }
 
   const synthesis = window.speechSynthesis;
+  const requestId = ++speechRequestId;
   synthesis.cancel();
   const voices = await loadSpeechSynthesisVoices(synthesis, options.voiceWaitMs);
+
+  if (requestId !== speechRequestId) {
+    return { ok: true };
+  }
 
   synthesis.cancel();
   const utterance = new SpeechSynthesisUtterance(englishText);
@@ -132,7 +138,11 @@ export async function speakEnglish(
   utterance.volume = 1;
   utterance.voice = selectEnglishVoice(voices);
   utterance.onend = () => options.onEnd?.();
-  utterance.onerror = () => options.onError?.(SPEECH_SYNTHESIS_UNAVAILABLE_MESSAGE);
+  utterance.onerror = (event) => {
+    if (requestId === speechRequestId && event.error !== "canceled" && event.error !== "interrupted") {
+      options.onError?.(SPEECH_SYNTHESIS_UNAVAILABLE_MESSAGE);
+    }
+  };
 
   try {
     synthesis.speak(utterance);
@@ -150,6 +160,7 @@ export async function speakEnglish(
 }
 
 export function stopSpeaking(): void {
+  speechRequestId += 1;
   if ("speechSynthesis" in window) {
     window.speechSynthesis.cancel();
   }

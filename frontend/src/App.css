@@ -637,6 +637,72 @@ button:disabled {
   grid-column: 1 / -1;
 }
 
+.book-added-date {
+  grid-column: 1 / -1;
+  color: #64748b;
+  font-size: 13px;
+  line-height: 1.4;
+}
+
+.review-panel {
+  display: grid;
+  gap: 12px;
+}
+
+.review-hint {
+  margin: 0;
+  color: #64748b;
+  line-height: 1.5;
+}
+
+.review-progress {
+  margin: 0;
+  color: #2563eb;
+  font-weight: 600;
+}
+
+.review-card {
+  display: grid;
+  gap: 14px;
+  padding: 16px;
+  border: 1px solid #d6dce8;
+  border-radius: 8px;
+  background: #fff;
+  overflow-wrap: anywhere;
+}
+
+.review-card h2, .review-card p {
+  margin: 0;
+}
+
+.review-prompt {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px;
+  min-width: 0;
+}
+
+.review-word-count {
+  color: #64748b;
+  font-size: 13px;
+}
+
+.review-speak {
+  flex: 0 0 auto;
+  width: 40px;
+  min-width: 40px;
+  height: 40px;
+  min-height: 40px;
+  padding: 0;
+  background: #f1f5f9;
+}
+
+.review-actions {
+  display: flex;
+  gap: 8px;
+}
+
 button.compact {
   min-width: 72px;
   width: auto;

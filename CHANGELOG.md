@@ -2,6 +2,8 @@
 
 ## 未发布
 
+- Learning Book 显示收藏日期，新增单词和句子的周期复习及每日进度统计。
+- 复习单词支持朗读和显示音标，修正朗读中断时的误报。
 - Translator 支持将句子和段落收藏到 Learning Book 的 Sentences，并按输入语言选择英文内容朗读。
 - Learning Book 对新收藏的 Translator 句子显示英文原文在前、中文译文在后。
 

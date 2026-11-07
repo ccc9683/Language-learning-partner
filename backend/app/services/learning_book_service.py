@@ -95,6 +95,66 @@ def delete_learning_item(item_id: int) -> bool:
         return cursor.rowcount > 0
 
 
+def list_due_items(limit: int = 50) -> list[LearningItem]:
+    with db.get_connection() as connection:
+        rows = connection.execute(
+            """
+            SELECT * FROM learning_items
+            WHERE last_reviewed_at IS NULL OR julianday(last_reviewed_at) +
+                CASE WHEN review_count < 2 THEN 1
+                     WHEN review_count = 2 THEN 3
+                     WHEN review_count = 3 THEN 7 ELSE 14 END <= julianday('now')
+            ORDER BY CASE WHEN last_reviewed_at IS NULL THEN julianday(created_at)
+                ELSE julianday(last_reviewed_at) +
+                    CASE WHEN review_count < 2 THEN 1
+                         WHEN review_count = 2 THEN 3
+                         WHEN review_count = 3 THEN 7 ELSE 14 END END, id
+            LIMIT ?
+            """,
+            (min(max(limit, 1), 200),),
+        ).fetchall()
+    return [row_to_item(row) for row in rows]
+
+
+def submit_review(item_id: int, remembered: bool) -> LearningItem | None:
+    now = datetime.now(timezone.utc).isoformat()
+    with db.get_connection() as connection:
+        cursor = connection.execute(
+            """UPDATE learning_items SET review_count = CASE WHEN ? THEN review_count + 1
+                   ELSE 0 END, last_reviewed_at = ?, updated_at = ? WHERE id = ?""",
+            (remembered, now, now, item_id),
+        )
+        if cursor.rowcount == 0:
+            return None
+        connection.execute(
+            "INSERT INTO review_events (item_id, remembered, reviewed_at) VALUES (?, ?, ?)",
+            (item_id, remembered, now),
+        )
+    return get_learning_item(item_id)
+
+
+def get_review_stats(start: datetime, end: datetime) -> dict:
+    with db.get_connection() as connection:
+        row = connection.execute(
+            """SELECT COUNT(DISTINCT item_id) AS reviewed,
+                      COUNT(DISTINCT CASE WHEN remembered = 1 THEN item_id END) AS remembered
+               FROM review_events
+               WHERE julianday(reviewed_at) >= julianday(?) AND julianday(reviewed_at) < julianday(?)""",
+            (start.isoformat(), end.isoformat()),
+        ).fetchone()
+        item_rows = connection.execute(
+            """SELECT item_id, COUNT(*) AS count FROM review_events
+               WHERE julianday(reviewed_at) >= julianday(?) AND julianday(reviewed_at) < julianday(?)
+               GROUP BY item_id""",
+            (start.isoformat(), end.isoformat()),
+        ).fetchall()
+    return {
+        "reviewed": row["reviewed"],
+        "remembered": row["remembered"],
+        "item_counts": {item["item_id"]: item["count"] for item in item_rows},
+    }
+
+
 def get_learning_item(item_id: int) -> LearningItem:
     with db.get_connection() as connection:
         row = connection.execute(
