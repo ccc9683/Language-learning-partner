@@ -9,7 +9,6 @@ import {
   loadInputHistory,
   removeInputHistory
 } from "../shared/inputHistory";
-import { RecordingDiagnosticsPanel } from "../shared/RecordingDiagnosticsPanel";
 import {
   collectRecordingDiagnostics,
   getErrorMessage,
@@ -55,7 +54,6 @@ function SayItPage() {
   const [recordingDiagnostics, setRecordingDiagnostics] = useState<RecordingDiagnostics>(() =>
     collectRecordingDiagnostics({ recordingState: "idle", stage: "say_it_init" })
   );
-  const [showRecordingDiagnostics, setShowRecordingDiagnostics] = useState(false);
   const [isSpeaking, setIsSpeaking] = useState(false);
   const recognitionRef = useRef<BrowserSpeechRecognition | null>(null);
   const recordingDiagnosticsRef = useRef<RecordingDiagnostics | null>(null);
@@ -425,18 +423,6 @@ function SayItPage() {
 
         {!speechSupported && (
           <div className="notice">{getSayItUnsupportedMessage(recordingDiagnostics)}</div>
-        )}
-
-        <button
-          className="secondary diagnostics-toggle"
-          onClick={() => setShowRecordingDiagnostics((visible) => !visible)}
-          type="button"
-        >
-          {showRecordingDiagnostics ? "隐藏录音诊断" : "显示录音诊断"}
-        </button>
-
-        {showRecordingDiagnostics && (
-          <RecordingDiagnosticsPanel diagnostics={recordingDiagnostics} title="Say It 录音诊断" />
         )}
 
         <div className="actions">

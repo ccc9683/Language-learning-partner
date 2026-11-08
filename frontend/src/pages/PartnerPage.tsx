@@ -8,7 +8,6 @@ import {
 } from "../features/partner/api";
 import type { PartnerMemory, PartnerMessage } from "../features/partner/types";
 import { transcribeSpeech } from "../features/speech/api";
-import { RecordingDiagnosticsPanel } from "../shared/RecordingDiagnosticsPanel";
 import {
   canUseMediaRecorderUpload,
   collectRecordingDiagnostics,
@@ -53,7 +52,6 @@ function PartnerPage() {
   const [recordingDiagnostics, setRecordingDiagnostics] = useState<RecordingDiagnostics>(() =>
     collectRecordingDiagnostics({ recordingState: "idle", stage: "partner_init" })
   );
-  const [showRecordingDiagnostics, setShowRecordingDiagnostics] = useState(false);
   const [speakingMessageId, setSpeakingMessageId] = useState<number | "latest" | null>(null);
   const recordingDiagnosticsRef = useRef<RecordingDiagnostics | null>(null);
   const mediaRecorderRef = useRef<MediaRecorder | null>(null);
@@ -531,16 +529,6 @@ function PartnerPage() {
           <div className="notice">{getUnsupportedRecordingMessage(recordingDiagnostics)}</div>
         )}
 
-        <button
-          className="secondary diagnostics-toggle"
-          onClick={() => setShowRecordingDiagnostics((visible) => !visible)}
-          type="button"
-        >
-          {showRecordingDiagnostics ? "隐藏录音诊断" : "显示录音诊断"}
-        </button>
-
-        {showRecordingDiagnostics && <RecordingDiagnosticsPanel diagnostics={recordingDiagnostics} />}
-
         <div className="partner-composer">
           <div className="partner-input-area">
             <textarea
@@ -622,7 +610,7 @@ function getUnsupportedRecordingMessage(diagnostics: RecordingDiagnostics): stri
     return "当前浏览器不支持 MediaRecorder，无法生成可上传的录音文件。请换 Chrome/Edge 或支持录音的浏览器。";
   }
 
-  return "当前浏览器录音能力不可用，请查看录音诊断后重试。";
+  return "当前浏览器录音能力不可用，请检查浏览器设置后重试。";
 }
 
 function getUnsupportedRecordingStage(diagnostics: RecordingDiagnostics): string {

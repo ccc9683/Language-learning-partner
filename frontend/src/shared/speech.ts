@@ -1,3 +1,5 @@
+import { sanitizeSpeechText } from "./speechText";
+
 export type BrowserSpeechRecognitionEvent = Event & {
   results: {
     length: number;
@@ -106,7 +108,7 @@ export async function speakEnglish(
   text: string,
   options: SpeakOptions = {}
 ): Promise<SpeakEnglishResult> {
-  const englishText = text.trim();
+  const englishText = sanitizeSpeechText(text);
   if (!englishText) {
     return {
       ok: false,
